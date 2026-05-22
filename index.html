@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>ThermoLabel · Simulador</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Barlow+Condensed:wght@300;400;600&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+:root {
+  --bg: #d4cfc8;
+  --card: #ede8e0;
+  --border: #c8c2b8;
+  --dark: #2a2420;
+  --text: #3a3530;
+  --muted: #7a7269;
+  --paper: #f5f0e8;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body { height: 100%; overflow-x: hidden; }
+
+body {
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 20% 50%, #c9c3bb 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, #e0dbd3 0%, transparent 50%);
+  font-family: 'Barlow Condensed', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── HEADER ── */
+.header {
+  background: var(--dark);
+  padding: 14px 20px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding-top: calc(14px + env(safe-area-inset-top, 0px));
+}
+.header-brand {
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 5px;
+  color: #e8e0d0;
+  text-transform: uppercase;
+}
+.header-sub {
+  font-size: .58rem;
+  letter-spacing: 2px;
+  color: #7a6a5a;
+  text-transform: uppercase;
+  font-family: 'Courier Prime', monospace;
+}
+
+/* ── TABS ── */
+.tabs {
+  display: flex;
+  background: #c8c2b8;
+  border-bottom: 1px solid #b0aa9f;
+}
+.tab {
+  flex: 1;
+  padding: 11px 8px;
+  text-align: center;
+  font-family: 'Oswald', sans-serif;
+  font-size: .65rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #7a7269;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all .2s;
+  position: relative;
+}
+.tab.active {
+  color: var(--dark);
+  background: var(--bg);
+}
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--dark);
+}
+
+/* ── SCROLL CONTENT ── */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.tab-panel { display: none; padding: 20px 16px; }
+.tab-panel.active { display: block; }
+
+/* ── BOTTLE VIEW (TAB 1) ── */
+.bottle-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.bottle-outer {
+  position: relative;
+  width: 140px;
+  filter: drop-shadow(6px 12px 24px rgba(0,0,0,.35)) drop-shadow(2px 4px 8px rgba(0,0,0,.2));
+}
+svg.bottle-svg { width: 100%; display: block; }
+
+.label-wrap {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 42px;
+  width: 78px;
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.4),
+    inset 0 -1px 0 rgba(0,0,0,.12),
+    0 2px 6px rgba(0,0,0,.3);
+}
+
+.label-paper { background: var(--paper); }
+.label-top {
+  background: var(--dark);
+  padding: 4px 6px 3px;
+  text-align: center;
+}
+.label-brand {
+  font-family: 'Oswald', sans-serif;
+  font-size: .6rem;
+  letter-spacing: 3px;
+  color: #e8e0d0;
+  text-transform: uppercase;
+}
+
+.thermo-strip-horiz {
+  display: flex;
+  height: 20px;
+  overflow: hidden;
+}
+.thermo-cell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Courier Prime', monospace;
+  font-size: .5rem;
+  font-weight: 700;
+  color: rgba(0,0,0,.5);
+  transition: background .6s, color .5s, box-shadow .5s;
+  border-right: 1px solid rgba(0,0,0,.08);
+}
+.thermo-cell:last-child { border-right: none; }
+.thermo-cell.active {
+  color: rgba(0,0,0,.85);
+  box-shadow: inset 0 0 10px rgba(255,255,255,.4);
+  z-index: 2;
+}
+.thermo-cell.inactive { filter: saturate(.15) brightness(.55); }
+
+.label-temp-area {
+  padding: 5px 8px 4px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+  background: var(--paper);
+}
+.label-big-temp {
+  font-family: 'Oswald', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  transition: color .5s;
+  color: var(--dark);
+  text-shadow: 1px 1px 0 rgba(0,0,0,.08);
+}
+.label-deg {
+  font-size: .8rem;
+  color: var(--muted);
+  font-family: 'Oswald', sans-serif;
+  margin-bottom: 2px;
+}
+
+.label-status-bar {
+  padding: 3px 6px 4px;
+  text-align: center;
+  transition: background .5s;
+  background: #e8e3da;
+}
+.label-status-text {
+  font-family: 'Oswald', sans-serif;
+  font-size: .55rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  transition: color .5s;
+  color: var(--text);
+}
+
+.label-bottom {
+  background: var(--dark);
+  padding: 3px 6px;
+  display: flex;
+  justify-content: space-between;
+}
+.label-bottom span {
+  font-size: .4rem;
+  letter-spacing: 1px;
+  color: #a09080;
+  text-transform: uppercase;
+  font-family: 'Courier Prime', monospace;
+}
+.label-deco {
+  height: 1px;
+  background: repeating-linear-gradient(90deg, #c8c0b0 0px, #c8c0b0 3px, transparent 3px, transparent 6px);
+  opacity: .5;
+}
+
+.bottle-caption {
+  font-size: .65rem;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/* ── TEMP DISPLAY CARD ── */
+.temp-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.07), inset 0 1px 0 rgba(255,255,255,.6);
+}
+.card-label {
+  font-family: 'Oswald', sans-serif;
+  font-size: .62rem;
+  letter-spacing: 4px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.big-temp-display {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+.big-num {
+  font-family: 'Oswald', sans-serif;
+  font-size: 5rem;
+  font-weight: 700;
+  line-height: 1;
+  transition: color .4s;
+  color: var(--dark);
+}
+.big-unit { font-size: 1.4rem; color: var(--muted); margin-bottom: 6px; }
+
+/* Slider */
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg,
+    #7ecef4 0%, #a8e6cf 30%, #ffd93d 55%, #ff8c42 75%, #e63946 100%);
+  outline: none;
+  cursor: pointer;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.2);
+  margin-bottom: 6px;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 3px solid var(--dark);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  transition: border-color .3s;
+}
+.range-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: .6rem;
+  color: var(--muted);
+  margin-top: 4px;
+  letter-spacing: 1px;
+}
+
+/* ── SCENARIOS ── */
+.scenarios {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.scn-btn {
+  background: #e0dbd2;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 6px 10px;
+  cursor: pointer;
+  text-align: center;
+  transition: all .15s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1), inset 0 1px 0 rgba(255,255,255,.5);
+  /* bigger touch target */
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  -webkit-tap-highlight-color: transparent;
+}
+.scn-btn:active { transform: scale(.96); }
+.scn-btn.active {
+  border-color: var(--dark);
+  background: var(--dark);
+}
+.scn-btn .ico { font-size: 1.5rem; }
+.scn-btn .sn  { font-size: .65rem; font-weight: 600; letter-spacing: .5px; color: var(--text); }
+.scn-btn .st  { font-family: 'Courier Prime', monospace; font-size: .6rem; color: var(--muted); }
+.scn-btn.active .sn, .scn-btn.active .st { color: #e8e0d0; }
+
+/* ── INFO TABLE ── */
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.info-row:last-child { border-bottom: none; padding-bottom: 0; }
+.info-row .k { color: var(--muted); font-size: .82rem; }
+.info-row .v {
+  font-family: 'Courier Prime', monospace;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--dark);
+}
+
+/* ── BIG LABEL (TAB 2) ── */
+.big-label-container {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 10px;
+}
+.label-big {
+  width: 100%;
+  max-width: 360px;
+  background: var(--paper);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.5);
+  border: 1px solid #b8b0a0;
+}
+.lb-top {
+  background: var(--dark);
+  padding: 12px 18px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.lb-brand-big {
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.2rem;
+  letter-spacing: 5px;
+  color: #e8e0d0;
+}
+.lb-sub {
+  font-size: .55rem;
+  letter-spacing: 2px;
+  color: #7a6a5a;
+  text-transform: uppercase;
+  font-family: 'Courier Prime', monospace;
+}
+.lb-strip {
+  display: flex;
+  height: 52px;
+  border-top: 2px solid var(--dark);
+  border-bottom: 2px solid var(--dark);
+}
+.lb-cell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  transition: background .6s, filter .5s;
+  border-right: 1px solid rgba(0,0,0,.1);
+}
+.lb-cell:last-child { border-right: none; }
+.lb-cell .ct {
+  font-family: 'Courier Prime', monospace;
+  font-size: .62rem;
+  font-weight: 700;
+  color: rgba(0,0,0,.6);
+}
+.lb-cell .cn {
+  font-size: .46rem;
+  letter-spacing: .5px;
+  color: rgba(0,0,0,.45);
+  text-transform: uppercase;
+  font-family: 'Barlow Condensed', sans-serif;
+}
+.lb-cell.active .ct { color: rgba(0,0,0,.9); }
+.lb-cell.active .cn { color: rgba(0,0,0,.7); }
+.lb-cell.inactive { filter: saturate(.1) brightness(.5); }
+.lb-cell.active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.35) 0%, transparent 60%);
+  pointer-events: none;
+}
+.lb-cell { position: relative; overflow: hidden; }
+
+.lb-mid {
+  padding: 16px 20px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.lb-temp-big {
+  font-family: 'Oswald', sans-serif;
+  font-size: clamp(3.5rem, 15vw, 5.5rem);
+  font-weight: 700;
+  line-height: 1;
+  transition: color .5s;
+  color: var(--dark);
+}
+.lb-temp-unit-big {
+  font-family: 'Oswald', sans-serif;
+  font-size: clamp(1.2rem, 5vw, 2rem);
+  color: var(--muted);
+  align-self: flex-end;
+  margin-bottom: 10px;
+  margin-left: 4px;
+}
+.lb-right-col { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.lb-status-pill {
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-family: 'Oswald', sans-serif;
+  font-size: .72rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  transition: background .5s, color .5s;
+  border: 1.5px solid transparent;
+}
+.lb-barcode {
+  width: 60px; height: 28px;
+  background: repeating-linear-gradient(
+    90deg,
+    #2a2420 0px, #2a2420 2px, #f5f0e8 2px, #f5f0e8 4px,
+    #2a2420 4px, #2a2420 5px, #f5f0e8 5px, #f5f0e8 7px,
+    #2a2420 7px, #2a2420 9px, #f5f0e8 9px, #f5f0e8 12px,
+    #2a2420 12px, #2a2420 13px, #f5f0e8 13px, #f5f0e8 15px,
+    #2a2420 15px, #2a2420 17px, #f5f0e8 17px, #f5f0e8 19px,
+    #2a2420 19px, #2a2420 21px, #f5f0e8 21px, #f5f0e8 24px,
+    #2a2420 24px, #2a2420 25px, #f5f0e8 25px, #f5f0e8 27px,
+    #2a2420 27px, #2a2420 29px, #f5f0e8 29px, #f5f0e8 32px,
+    #2a2420 32px, #2a2420 34px, #f5f0e8 34px, #f5f0e8 37px,
+    #2a2420 37px, #2a2420 38px, #f5f0e8 38px, #f5f0e8 40px,
+    #2a2420 40px, #2a2420 42px, #f5f0e8 42px, #f5f0e8 44px,
+    #2a2420 44px, #2a2420 46px, #f5f0e8 46px, #f5f0e8 48px,
+    #2a2420 48px, #2a2420 50px, #f5f0e8 50px, #f5f0e8 53px,
+    #2a2420 53px, #2a2420 55px, #f5f0e8 55px, #f5f0e8 57px,
+    #2a2420 57px, #2a2420 60px
+  );
+  opacity: .7;
+}
+.lb-deco-line {
+  height: 1px;
+  background: repeating-linear-gradient(90deg, #c8c0b0 0px, #c8c0b0 6px, transparent 6px, transparent 10px);
+  margin: 0 20px;
+}
+.lb-bottom {
+  padding: 10px 20px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.lb-note {
+  font-size: .58rem;
+  color: #9a9288;
+  line-height: 1.5;
+  font-family: 'Courier Prime', monospace;
+}
+.lb-recycled { font-size: 1rem; opacity: .4; }
+
+/* ── HOW IT WORKS (TAB 3) ── */
+.how-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.07);
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.how-ico { font-size: 1.8rem; flex-shrink: 0; margin-top: 2px; }
+.how-card h4 {
+  font-family: 'Oswald', sans-serif;
+  font-size: .9rem;
+  letter-spacing: 1px;
+  color: var(--dark);
+  margin-bottom: 5px;
+}
+.how-card p { font-size: .8rem; color: #5a5349; line-height: 1.6; }
+
+/* ── BOTTOM SAFE AREA ── */
+.safe-bottom { height: var(--safe-bottom); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-brand">ThermoLabel</div>
+    <div class="header-sub">Etiqueta termocrómica</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('simulador')">🌡️ Simular</button>
+  <button class="tab" onclick="switchTab('etiqueta')">🏷️ Etiqueta</button>
+  <button class="tab" onclick="switchTab('info')">ℹ️ Info</button>
+</div>
+
+<div class="content">
+
+  <!-- TAB 1: SIMULADOR -->
+  <div class="tab-panel active" id="panel-simulador">
+
+    <div class="bottle-center">
+      <div class="bottle-outer">
+        <svg class="bottle-svg" viewBox="0 0 140 340" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"   stop-color="#8bb0c8" stop-opacity=".6"/>
+              <stop offset="20%"  stop-color="#c8dde8" stop-opacity=".8"/>
+              <stop offset="50%"  stop-color="#e8f2f8" stop-opacity=".9"/>
+              <stop offset="80%"  stop-color="#b0ccdc" stop-opacity=".75"/>
+              <stop offset="100%" stop-color="#6888a0" stop-opacity=".6"/>
+            </linearGradient>
+            <linearGradient id="liquidGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"   stop-color="#1a6080" stop-opacity=".9"/>
+              <stop offset="50%"  stop-color="#2280a0" stop-opacity=".7"/>
+              <stop offset="100%" stop-color="#1a6080" stop-opacity=".85"/>
+            </linearGradient>
+            <clipPath id="bottleClip">
+              <path d="M46 22 C40 40 34 60 32 80 L32 290 Q32 310 70 310 Q108 310 108 290 L108 80 C106 60 100 40 94 22 Z"/>
+            </clipPath>
+          </defs>
+          <rect x="52" y="2" width="36" height="22" rx="6" fill="#3a3530"/>
+          <rect x="54" y="4" width="32" height="4" rx="2" fill="#5a5048"/>
+          <path d="M52 24 C48 36 44 52 42 68 L98 68 C96 52 92 36 88 24 Z" fill="url(#glassGrad)"/>
+          <path d="M53 24 C50 36 47 52 45 68" stroke="rgba(255,255,255,.5)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <g clip-path="url(#bottleClip)">
+            <rect id="liquid" x="32" y="100" width="76" height="210" fill="url(#liquidGrad)" opacity=".85"/>
+            <ellipse id="liquidSurface" cx="70" cy="100" rx="36" ry="5" fill="rgba(255,255,255,.15)"/>
+          </g>
+          <path d="M42 68 L32 80 L32 290 Q32 310 70 310 Q108 310 108 290 L108 80 L98 68 Z"
+                fill="url(#glassGrad)" fill-opacity=".5"/>
+          <path d="M38 85 C37 120 36 180 36 260" stroke="rgba(255,255,255,.6)" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M50 85 C49 120 48 200 48 270" stroke="rgba(255,255,255,.2)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M42 68 L32 80 L32 290 Q32 310 70 310 Q108 310 108 290 L108 80 L98 68 Z"
+                fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1"/>
+          <ellipse cx="70" cy="300" rx="28" ry="5" fill="rgba(255,255,255,.1)"/>
+        </svg>
+
+        <div class="label-wrap" id="bottleLabel">
+          <div class="label-top"><div class="label-brand">ThermoLabel</div></div>
+          <div class="thermo-strip-horiz" id="bottleStrip">
+            <div class="thermo-cell" data-min="0"  data-max="10"  style="background:#7ecef4">0°</div>
+            <div class="thermo-cell" data-min="10" data-max="20"  style="background:#a8dfcd">10°</div>
+            <div class="thermo-cell" data-min="20" data-max="35"  style="background:#c8e88a">20°</div>
+            <div class="thermo-cell" data-min="35" data-max="55"  style="background:#ffd93d">37°</div>
+            <div class="thermo-cell" data-min="55" data-max="101" style="background:#ff8c42">55°</div>
+          </div>
+          <div class="label-temp-area">
+            <span class="label-big-temp" id="lblTemp">20</span>
+            <span class="label-deg">°C</span>
+          </div>
+          <div class="label-deco"></div>
+          <div class="label-status-bar" id="lblStatusBar">
+            <span class="label-status-text" id="lblStatus">Temperatura ambiente</span>
+          </div>
+          <div class="label-bottom">
+            <span>±0.5°C</span>
+            <span>Termocróm.</span>
+          </div>
+        </div>
+      </div>
+      <p class="bottle-caption">Botella con etiqueta pegada</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="temp-card">
+      <div class="card-label">Ajustar temperatura</div>
+      <div class="big-temp-display">
+        <span class="big-num" id="ctrlNum">20</span>
+        <span class="big-unit">°C</span>
+      </div>
+      <input type="range" id="slider" min="0" max="100" value="20">
+      <div class="range-labels"><span>0° Hielo</span><span>100° Ebullición</span></div>
+    </div>
+
+    <div class="temp-card">
+      <div class="card-label">Escenarios</div>
+      <div class="scenarios">
+        <button class="scn-btn" onclick="go(2)"  data-t="2"><span class="ico">🧊</span><span class="sn">Helado</span><span class="st">~2°C</span></button>
+        <button class="scn-btn" onclick="go(8)"  data-t="8"><span class="ico">🥤</span><span class="sn">Refresco</span><span class="st">~8°C</span></button>
+        <button class="scn-btn" onclick="go(18)" data-t="18"><span class="ico">💧</span><span class="sn">Fresco</span><span class="st">~18°C</span></button>
+        <button class="scn-btn" onclick="go(20)" data-t="20"><span class="ico">🌡️</span><span class="sn">Ambiente</span><span class="st">~20°C</span></button>
+        <button class="scn-btn" onclick="go(90)" data-t="90"><span class="ico">♨️</span><span class="sn">Muy cal.</span><span class="st">~90°C</span></button>
+        <button class="scn-btn" onclick="go(100)" data-t="100"><span class="ico">🔥</span><span class="sn">Ebullición</span><span class="st">~100°C</span></button>
+      </div>
+    </div>
+
+    <div class="temp-card">
+      <div class="card-label">Estado de la etiqueta</div>
+      <div class="info-row"><span class="k">Temperatura</span><span class="v" id="iTemp">20 °C</span></div>
+      <div class="info-row"><span class="k">Zona activa</span><span class="v" id="iZone">Verde (20–35°C)</span></div>
+      <div class="info-row"><span class="k">Estado</span><span class="v" id="iStatus">Ambiente</span></div>
+      <div class="info-row"><span class="k">Tecnología</span><span class="v">Cristal líquido</span></div>
+      <div class="info-row"><span class="k">Precisión</span><span class="v">±0.5 °C</span></div>
+    </div>
+  </div>
+
+  <!-- TAB 2: ETIQUETA DESPLEGADA -->
+  <div class="tab-panel" id="panel-etiqueta">
+    <div style="font-family:'Oswald',sans-serif;font-size:.62rem;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-bottom:14px;">Diseño real de la etiqueta</div>
+    <div class="big-label-container">
+      <div class="label-big" id="bigLabel">
+        <div class="lb-top">
+          <div class="lb-brand-big">ThermoLabel</div>
+          <div class="lb-sub">Liquid temp indicator</div>
+        </div>
+        <div class="lb-strip" id="bigStrip">
+          <div class="lb-cell" data-min="0"  data-max="10"  style="background:#7ecef4"><span class="ct">0°C</span><span class="cn">Helado</span></div>
+          <div class="lb-cell" data-min="10" data-max="20"  style="background:#a8dfcd"><span class="ct">10°C</span><span class="cn">Frío</span></div>
+          <div class="lb-cell" data-min="20" data-max="35"  style="background:#c8e88a"><span class="ct">20°C</span><span class="cn">Fresco</span></div>
+          <div class="lb-cell" data-min="35" data-max="55"  style="background:#ffd93d"><span class="ct">37°C</span><span class="cn">Tibio</span></div>
+          <div class="lb-cell" data-min="55" data-max="75"  style="background:#ff8c42"><span class="ct">55°C</span><span class="cn">Caliente</span></div>
+          <div class="lb-cell" data-min="75" data-max="101" style="background:#e63946"><span class="ct">75°C</span><span class="cn">Muy cal.</span></div>
+        </div>
+        <div class="lb-mid">
+          <div style="display:flex;align-items:baseline">
+            <span class="lb-temp-big" id="bigTempNum">20</span>
+            <span class="lb-temp-unit-big">°C</span>
+          </div>
+          <div class="lb-right-col">
+            <div class="lb-status-pill" id="bigPill">Fresco</div>
+            <div class="lb-barcode"></div>
+          </div>
+        </div>
+        <div class="lb-deco-line"></div>
+        <div class="lb-bottom">
+          <div class="lb-note">
+            Cristal líquido termocróm.<br>
+            PET 0.12mm · IP67 · ±0.5°C<br>
+            Rango: 0–100°C
+          </div>
+          <div class="lb-recycled">♻</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mini slider on label tab -->
+    <div class="temp-card" style="margin-top:16px;">
+      <div class="card-label">Control rápido</div>
+      <div class="big-temp-display">
+        <span class="big-num" id="ctrlNum2">20</span>
+        <span class="big-unit">°C</span>
+      </div>
+      <input type="range" id="slider2" min="0" max="100" value="20">
+      <div class="range-labels"><span>0°</span><span>100°</span></div>
+    </div>
+  </div>
+
+  <!-- TAB 3: INFO -->
+  <div class="tab-panel" id="panel-info">
+    <div class="how-card">
+      <div class="how-ico">🎨</div>
+      <div>
+        <h4>Tinta termocrómica</h4>
+        <p>Cada celda contiene microcápsulas de cristal líquido. Al recibir calor del envase, cambian de opaco a transparente, revelando el color impreso debajo.</p>
+      </div>
+    </div>
+    <div class="how-card">
+      <div class="how-ico">🔬</div>
+      <div>
+        <h4>Contacto directo</h4>
+        <p>La etiqueta va pegada directamente sobre el vidrio o PET de la botella. El calor del líquido se transfiere al material en segundos y activa los pigmentos.</p>
+      </div>
+    </div>
+    <div class="how-card">
+      <div class="how-ico">🏷️</div>
+      <div>
+        <h4>Sin electrónica</h4>
+        <p>100% pasiva. Sin batería, sin chips. El cambio de color es una reacción química reversible que ocurre cada vez que la temperatura sube o baja.</p>
+      </div>
+    </div>
+    <div class="how-card">
+      <div class="how-ico">♻️</div>
+      <div>
+        <h4>Material</h4>
+        <p>Laminado PET de 0.12mm + capa termocrómica + adhesivo de silicona resistente al agua. Reutilizable, imprimible y compatible con líneas de producción existentes.</p>
+      </div>
+    </div>
+    <div class="how-card">
+      <div class="how-ico">📏</div>
+      <div>
+        <h4>Especificaciones</h4>
+        <p>Rango: 0–100°C · Precisión: ±0.5°C · Grosor: 0.12mm · Resistencia: IP67 · Adhesivo: silicona medical-grade · Vida útil: +1000 ciclos.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="safe-bottom"></div>
+</div>
+
+<script>
+const ZONES = [
+  { min:0,  max:10,  label:'Helado',             short:'Helado',    color:'#7ecef4', text:'#1a4a6a', pill:'rgba(126,206,244,.2)', pillText:'#1a6090', info:'Azul (0–10°C)' },
+  { min:10, max:20,  label:'Frío',               short:'Frío',      color:'#a8dfcd', text:'#1a4a38', pill:'rgba(168,223,205,.2)', pillText:'#1a5038', info:'Verde agua (10–20°C)' },
+  { min:20, max:35,  label:'Temperatura ambiente',short:'Ambiente',  color:'#c8e88a', text:'#2a4010', pill:'rgba(200,232,138,.2)', pillText:'#3a5010', info:'Verde (20–35°C)' },
+  { min:35, max:55,  label:'Tibio',              short:'Tibio',     color:'#ffd93d', text:'#4a3a00', pill:'rgba(255,217,61,.2)',  pillText:'#6a5000', info:'Amarillo (35–55°C)' },
+  { min:55, max:75,  label:'Caliente',           short:'Caliente',  color:'#ff8c42', text:'#4a1800', pill:'rgba(255,140,66,.2)',  pillText:'#8a3000', info:'Naranja (55–75°C)' },
+  { min:75, max:101, label:'Muy caliente',       short:'Muy cal.',  color:'#e63946', text:'#fff',    pill:'rgba(230,57,70,.15)', pillText:'#c00020', info:'Rojo (75–100°C)' },
+];
+function getZone(t) { return ZONES.find(z => t >= z.min && t < z.max) || ZONES[5]; }
+
+function updateCells(stripId, t) {
+  document.querySelectorAll(`#${stripId} [data-min]`).forEach(cell => {
+    const mn = +cell.dataset.min, mx = +cell.dataset.max;
+    cell.classList.remove('active','inactive');
+    if (t >= mn && t < mx) cell.classList.add('active');
+    else cell.classList.add('inactive');
+  });
+}
+
+function updateLiquid(t) {
+  const pct = t / 100;
+  const y = 70 + (1 - pct) * 190;
+  document.getElementById('liquid').setAttribute('y', y);
+  document.getElementById('liquid').setAttribute('height', 310 - y);
+  document.getElementById('liquidSurface').setAttribute('cy', y);
+  const colors = [
+    ['#4090b8','#60b0d8'],['#3898b8','#50b8d8'],['#286888','#3888a8'],
+    ['#887020','#a89040'],['#883020','#a84030'],['#681010','#882020'],
+  ];
+  const zi = ZONES.findIndex(z => t >= z.min && t < z.max);
+  const [c1,c2] = colors[Math.max(0,zi)];
+  document.querySelector('#liquidGrad stop:first-child').setAttribute('stop-color', c1);
+  document.querySelector('#liquidGrad stop:last-child').setAttribute('stop-color', c2);
+}
+
+function update(t) {
+  const z = getZone(t);
+  // slider readouts
+  document.getElementById('ctrlNum').textContent = t;
+  document.getElementById('ctrlNum').style.color = z.pillText;
+  document.getElementById('ctrlNum2').textContent = t;
+  document.getElementById('ctrlNum2').style.color = z.pillText;
+  // bottle label
+  document.getElementById('lblTemp').textContent = t;
+  document.getElementById('lblTemp').style.color = z.pillText;
+  document.getElementById('lblStatus').textContent = z.label;
+  document.getElementById('lblStatusBar').style.background = z.pill;
+  // big label
+  document.getElementById('bigTempNum').textContent = t;
+  document.getElementById('bigTempNum').style.color = z.pillText;
+  const pill = document.getElementById('bigPill');
+  pill.textContent = z.short;
+  pill.style.background = z.pill;
+  pill.style.color = z.pillText;
+  pill.style.borderColor = z.color;
+  // cells
+  updateCells('bottleStrip', t);
+  updateCells('bigStrip', t);
+  updateLiquid(t);
+  // info
+  document.getElementById('iTemp').textContent = t + ' °C';
+  document.getElementById('iZone').textContent = z.info;
+  document.getElementById('iStatus').textContent = z.short;
+  // sync sliders
+  document.getElementById('slider').value = t;
+  document.getElementById('slider2').value = t;
+  // thumb color
+  sliderStyle.textContent = `input[type=range]::-webkit-slider-thumb { border-color: ${z.pillText} !important; }`;
+}
+
+function go(t) {
+  update(t);
+  document.querySelectorAll('.scn-btn').forEach(b => b.classList.toggle('active', +b.dataset.t === t));
+}
+
+const sliderStyle = document.createElement('style');
+document.head.appendChild(sliderStyle);
+
+document.getElementById('slider').addEventListener('input', e => {
+  update(+e.target.value);
+  document.querySelectorAll('.scn-btn').forEach(b => b.classList.remove('active'));
+});
+document.getElementById('slider2').addEventListener('input', e => {
+  update(+e.target.value);
+  document.querySelectorAll('.scn-btn').forEach(b => b.classList.remove('active'));
+});
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['simulador','etiqueta','info'][i] === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+}
+
+go(20);
+</script>
+</body>
+</html>
